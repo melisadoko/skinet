@@ -1,0 +1,15 @@
+﻿
+using Core.Entities;
+using System.Linq.Expressions;
+
+namespace Core.Specification
+{
+    public class BrandListSpecification : BaseSpecification<Product, string>
+    {
+        public BrandListSpecification() 
+        {
+            AddSelect(x => x.Brand);
+            ApplyDistinct();
+        }
+    }
+}
