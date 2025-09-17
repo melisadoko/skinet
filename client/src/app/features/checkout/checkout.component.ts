@@ -16,6 +16,7 @@ import { CartService } from '../../core/services/cart.service';
 import { CurrencyPipe } from '@angular/common';
 import { CheckoutReviewComponent } from './checkout-review/checkout-review.component';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import { ShippingAddress } from '../../shared/models/order';
 
 @Component({
   selector: 'app-checkout',
@@ -66,17 +67,17 @@ export class CheckoutComponent implements OnInit, OnDestroy {
   }
 
   handleAddressChange = (event: StripeAddressElementChangeEvent) => {
-     this.completionStatus.update(state => {
+    this.completionStatus.update(state => {
       state.address = event.complete;
       return state;
-     })
+    })
   }
 
   handlePaymentChange = (event: StripePaymentElementChangeEvent) => {
-     this.completionStatus.update(state => {
+    this.completionStatus.update(state => {
       state.card = event.complete;
       return state;
-     })
+    })
   }
 
   handleDeliveryChange(event: boolean) {
@@ -95,14 +96,14 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       }
     }
     catch(error: any) {
-     this.snackbar.error(error.message);
+    this.snackbar.error(error.message);
     }
   }
 
   async onStepChange(event: StepperSelectionEvent) {
     if(event.selectedIndex === 1) {
       if(this.saveAddress) {
-        const address = await this.getAddressFromStripeAddress();
+        const address = await this.getAddressFromStripeAddress() as Address;
         address && firstValueFrom(this.accountService.updateAddress(address));
       }
     }
@@ -111,7 +112,7 @@ export class CheckoutComponent implements OnInit, OnDestroy {
       await firstValueFrom(this.stripeService.createOrUpdatePaymentIntent());
     }
 
-     if(event.selectedIndex === 3) {
+    if(event.selectedIndex === 3) {
       await this.getConfirmationToken();
     }
   }
@@ -130,19 +131,26 @@ export class CheckoutComponent implements OnInit, OnDestroy {
         }
       }
     } catch(error: any) {
-     this.snackbar.error(error.message || "Something went wrong");
-     stepper.previous();
+    this.snackbar.error(error.message || "Something went wrong");
+    stepper.previous();
     } finally {
       this.loading = false;
     }
   }
 
-  private async getAddressFromStripeAddress() : Promise<Address | null> {
+  private async createOrderModel() {
+    const cart = this.cartService.cart();
+    const shippingAddres = await this.getAddressFromStripeAddress() as ShippingAddress;
+    const card = this.confirmationToken?.payment_method_preview.card;
+  }
+
+  private async getAddressFromStripeAddress() : Promise<Address | ShippingAddress | null> {
     const result = await this.addressElement?.getValue();
     const address = result?.value.address;
 
     if(address) {
       return {
+        name: result.value.name,
         line1: address.line1,
         line2: address.line2 || undefined,
         city: address.city,
